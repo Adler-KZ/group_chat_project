@@ -5,11 +5,21 @@ import random
 from tkinter import *
 
 # TODO esm haro ye taghir asasi bede
-
+# TODO error message haro dorost neshun bede
+# TODO be class hat vorudi bede
 # ------------------------------Functions-------------------------------
 
+# <-------Check True Validation------->
+def check_valid(win, IP, PORT, NAME):
+    ip_pattern = re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", IP)
+    name_pattern = re.match(r"[A-Za-z1-9]", NAME)
 
-
+    if ip_pattern and PORT.isdigit() and name_pattern:
+        return ser.connect_to_server(win, IP, int(PORT), NAME)
+    else:
+        # TODO fix error message
+        print('error')
+        return False,"That's incorrect"
 
 # <-------Unique Color------->
 def random_color():
@@ -18,21 +28,16 @@ def random_color():
     b = random.randint(0, 255)
     hex_color = "#{:02x}{:02x}{:02x}".format(r, g, b)
     return hex_color
-# <-------End Unique Color------->
-
 
 # ------------------------------Classes-------------------------------
-class server:
-    global UserName
-    global Color
-    global RoomID
 
+# <-------Server------->
+class server:
     def __init__(self, soc):
         self.soc = soc
         self.RoomID = ''
-        self.Username = ''
+        self.UserName = ''
         self.Color = random_color()
-
 
     def connect_to_server(self,win, IP: str, PORT: int, NAME: str):
         try:
@@ -43,7 +48,7 @@ class server:
             self.soc.sendall(data)
 
             response = str(self.soc.recv(1024), 'utf-8').split(' ')
-            UserName = response[0]
+            self.UserName = response[0]
             window.insert_listbox(int(response[1]))
 
             window.rooms_frame()
@@ -54,7 +59,7 @@ class server:
             win.destroy()
 
     def client_send(self, msg):
-        data = f'message {msg} {UserName} {Color} {RoomID}'
+        data = f'message {msg} {self.UserName} {self.Color} {self.RoomID}'
         # data = self.pack_data('message',msg,name,color)
         try:
             self.soc.sendall(data.encode('utf-8'))
@@ -62,12 +67,9 @@ class server:
             print('Server is down!')
     
     def client_create_room(self):
-        #! Delete
-        print(UserName)
-        data = f'create {UserName}'
+        data = f'create {self.UserName}'
         try:
             self.soc.sendall(data.encode('utf-8'))
-            #! momkne error bede 
             window.room_frame.destroy()
             window.chats_frame()
         except socket.error:
@@ -78,14 +80,13 @@ class server:
             data = str(self.soc.recv(1024), 'utf-8').split(' ')
             server_method = data[0]
             if server_method == 'create':
-                global RoomID
-                RoomID = data[1]
+                self.RoomID = data[1]
             elif server_method == 'message':
                 server_message = data[1]
                 server_username = data[2]
                 server_color = data[3]
                 server_roomID = data[4]
-                if RoomID != server_roomID :
+                if self.RoomID != server_roomID :
                     continue
                 # Custom tag color
                 window.MESSAGEBOX.tag_config(f'{server_username}', foreground=server_color)
@@ -94,24 +95,12 @@ class server:
                 window.MESSAGEBOX.configure(state='normal')
 
                 #? if username == window.USERNAME.get():
-                if server_username == UserName:
+                if server_username == self.UserName:
                     window.MESSAGEBOX.insert(END, f'Me: {server_message}\n')
                 else:
                     window.MESSAGEBOX.insert(INSERT, f'{server_username}: {server_message}\n', f'{server_username}')
                 window.MESSAGEBOX.configure(state='disabled')
             
-
-
-
-
-# ------------------------------UI-------------------------------
-
-soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-ser = server(soc)
-UserName = ''
-RoomID = ''
-Color = random_color()
-
 
 class Window:
     def __init__(self,master:Tk, title,geometery):
@@ -131,6 +120,7 @@ class Window:
         self.login_btn.grid(column=2,row=2)
 
         self.ROOMS_LIST = Listbox(self.room_frame)
+        self.ROOMS_LIST.bind('<Double-1>',self.double_ckick_event)
         self.MESSAGEBOX = Text(self.chat_frame) 
 
     def login(self):
@@ -155,34 +145,39 @@ class Window:
 
         Label(self.room_frame, text='Avabaile Rooms:').pack()
         self.ROOMS_LIST.pack()
-        Entry(self.room_frame).pack()
-        Button(self.room_frame,text='Connect').pack()
         Button(self.room_frame,text='Create Room',command=lambda:ser.client_create_room()).pack()
     
     def chats_frame (self):
         self.chat_frame.pack()
 
         Entry(self.chat_frame,textvariable=self.MESSAGE, width=50).pack()
-        self.MESSAGEBOX.pack()
         Button(self.chat_frame,text='Send', command=lambda: ser.client_send(self.MESSAGE.get())).pack()
+        self.MESSAGEBOX.pack()
     
     def insert_listbox(self,num:int):
         for i in range(num):
             self.ROOMS_LIST.insert(i+1,f"Room's {i+1}")
+    
+    def double_ckick_event(self,event):
+        selected_room = self.ROOMS_LIST.curselection()
+        ser.RoomID = str(selected_room[0]+1)       
+
+        self.room_frame.destroy()
+        self.chats_frame()
+
+
+# ------------------------------UI-------------------------------
+
+soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+ser = server(soc)
 
 
 
 
-def check_valid(win, IP, PORT, NAME):
-    ip_pattern = re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", IP)
-    name_pattern = re.match(r"[A-Za-z1-9]", NAME)
 
-    if ip_pattern and PORT.isdigit() and name_pattern:
-        return ser.connect_to_server(win, IP, int(PORT), NAME)
-    else:
-        # TODO fix error message
-        print('error')
-        return False,"That's incorrect"
+
+
+
 
 tk = Tk()
 window = Window(tk,"323's Room","400x400")

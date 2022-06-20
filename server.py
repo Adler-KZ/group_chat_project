@@ -1,26 +1,30 @@
+from glob import glob
 import threading, socket, random
 
+roomID = 0
 clients = []
-usernames_colors = {}
-room__id = 1
+usernames = []
+usernames_roomID = {}
 
 
 def analyze_data(DATA, CLIENT):
     data = str(DATA, 'utf-8')
     data_items = data.split(' ')
     method = data_items[0]
+    global roomID
 
     if method == 'connect':
-        username = data_items[1]
-        color = data_items[2]
         # Unique Username
+        username = data_items[1]
+        name = username
         while True:
-            name = f'{username}_{random.randint(0, 99)}'
-            if name not in usernames_colors.keys():
+            if name not in usernames:
                 break
-        # Append to list
-        usernames_colors[name] = color
-        CLIENT.sendall(name.encode('utf-8'))
+            name = f'{username}_{random.randint(0, 99)}'
+        usernames.append(name)
+
+        data = f'{name} {roomID}'
+        CLIENT.sendall(data.encode('utf-8'))
 
     elif method == 'message':
         for c in clients:
@@ -29,21 +33,20 @@ def analyze_data(DATA, CLIENT):
             except:
                 print(f'User disconnected')
                 clients.remove(c)
+    
+    elif method == 'create':
+        roomID += 1
+        username = data_items[1]
+        usernames_roomID[username]=roomID
 
+        data = f'create {roomID}'
+        CLIENT.sendall(data.encode('utf-8'))
 
 
 def receive(CLIENT, ADDR):
     while True:
         data = CLIENT.recv(1024)
         analyze_data(data, CLIENT)
-        # username = CLIENT.recv(1024)
-        # for c in clients:
-        #     try:
-        #         c[0].sendall(data)
-        #         c[0].sendall(username)
-        #     except:
-        #         print(f'User {ADDR[0]} disconnected')
-        #         clients.remove(c)
         if data == b'':
             print(f'User {ADDR[0]} disconnected')
             break

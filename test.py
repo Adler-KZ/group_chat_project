@@ -1,28 +1,17 @@
-# from tkinter import Tk, Label, Button
+from cmath import exp
+from tkinter import *
 
-# class MyFirstGUI:
-#     def __init__(self, master):
-#         self.master = master
-#         self.test='sdfs'
-#         master.title("A simple GUI")
+root = Tk()
+root.geometry('400x400')
 
-#         self.label = Label(master, text="This is our first GUI!")
-#         self.label.pack()
+usernameL = Label(root, text=f'Your username: frame',font=('gabriola',35))
+roomsL = Label(root, text='Avabaile Rooms:',font=('arial',12))
+createB = Button(root,text='Create New Room',font=('arial',12))
+ROOMS_LIST = Listbox(root,font=('calibri',14))
+ROOMS_LIST.insert(0,'sfs')
 
-#         self.greet_button = Button(master, text="Greet", command=self.greet)
-#         self.greet_button.pack()
-
-#         self.close_button = Button(master, text="Close", command=master.quit)
-#         self.close_button.pack()
-
-#     def greet(self):
-#         print("Greetings!")
-#         print(self.test)
-
-# root = Tk()
-# my_gui = MyFirstGUI(root)
-# root.mainloop()
-
-
-t = True
-print(f'sdf {t}')
+usernameL.pack()
+roomsL.pack(padx=(0,220),side=TOP)
+ROOMS_LIST.pack(expand=True,fill='both',padx=25,pady=(2,5))
+createB.pack(ipadx=5,pady=(0,2))
+root.mainloop()

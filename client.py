@@ -1,4 +1,5 @@
 
+from cmath import exp
 import socket
 import threading
 import re
@@ -103,9 +104,10 @@ class Window:
         self.server=server
         # Main window attr
         self.master = master
-        master.title(title)
-        master.geometry(geometery)
+        self.master.title(title)
+        self.master.geometry(geometery)
         self.master.protocol('WM_DELETE_WINDOW',self.EXIT)
+        self.master.resizable(0,0)
         # Variables
         self.IP=StringVar(master)
         self.PORT = StringVar(master)
@@ -116,19 +118,22 @@ class Window:
         self.roomF = Frame(master)
         self.chatF = Frame(master)
         # Listbox room & dounble click event
-        self.ROOMS_LIST = Listbox(self.roomF)
+        self.ROOMS_LIST = Listbox(self.roomF,font=('calibri',13))
         self.ROOMS_LIST.bind('<Double-1>',self.double_ckick_event)
         # Run main frame
         self.main_frame()
 
     def main_frame(self):
-        self.mainF.pack()
+        self.mainF.pack(fill='both',expand=True)
+        self.mainF.config(bg='#cf91ff')
         # widget
-        welcomeL = Label(self.mainF,text='Welcome to the ROOM 323')
-        loginB = Button(self.mainF,text='Login',command=self.login_window)
+        welcomeL = Label(self.mainF,text='Welcome to the',bg ='#cf91ff',font=('franklin fothic',30))
+        nameL = Label(self.mainF,text='ROOM 323',bg ='#cf91ff',font=('impact',40))
+        loginB = Button(self.mainF,text='Login',command=self.login_window,font=('impact',18,'italic'),bg='#237ca6')
         # Show Widgets
-        welcomeL.grid(column=2,row=1, pady=10)
-        loginB.grid(column=2,row=10)
+        welcomeL.pack(pady=(50,0))
+        nameL.pack(pady=(0,55))
+        loginB.pack(pady=50)
 
     def login_window(self):
         # login window attr
@@ -137,13 +142,13 @@ class Window:
         self.loginF.geometry('300x180')
         self.loginF.resizable(0,0)
         # Widgets
-        ipL = Label(self.loginF, text='Enter your IP :',font=('sens',10))
-        portL = Label(self.loginF, text='Enter your Port :',font=('sens',10))
-        usernameL = Label(self.loginF, text='Enter your Username :',font=('sens',10))
-        ipE=Entry(self.loginF, textvariable=self.IP,font=('sens',10))
-        portE=Entry(self.loginF, textvariable=self.PORT,font=('sens',10))
-        usernameE=Entry(self.loginF, textvariable=self.USERNAME,font=('sens',10))
-        loginB = Button(self.loginF, text='Login',command=self.login_btn_event,font=('sens',10))
+        ipL = Label(self.loginF, text='Enter your IP :',font=('arial',10))
+        portL = Label(self.loginF, text='Enter your Port :',font=('arial',10))
+        usernameL = Label(self.loginF, text='Enter your Username :',font=('arial',10))
+        ipE=Entry(self.loginF, textvariable=self.IP,font=('corbel',10))
+        portE=Entry(self.loginF, textvariable=self.PORT,font=('corbel',10))
+        usernameE=Entry(self.loginF, textvariable=self.USERNAME,font=('corbel',10))
+        loginB = Button(self.loginF, text='Login',command=self.login_btn_event,font=('corbel',10))
         loginB.bind('<Return>',self.login_btn_event)
         # Show Widgets
         ipL.grid(row=0,column=2,pady=10,padx=(7,1))
@@ -157,30 +162,30 @@ class Window:
     def rooms_frame (self):
         self.loginF.destroy()
         self.mainF.destroy()
-        self.roomF.pack()
+        self.roomF.pack(fill='both',expand=True)
+        self.roomF.config(bg='#cf91ff')
         # Widgets
-        usernameL = Label(self.roomF, text=f'Wellcome {self.server.UserName}',font=('romans',12,'italic'))
-        roomsL = Label(self.roomF, text='Avabaile Rooms:',font=('romans',12))
-        createB = Button(self.roomF,text='Create Room',command=lambda:self.server.client_create_room(),font=('romans',12))
+        usernameL = Label(self.roomF, text=f'Wellcome {self.server.UserName}',font=('gabriola',35),bg='#cf91ff')
+        roomsL = Label(self.roomF, text='Avabaile Rooms:',font=('arial',12),bg='#cf91ff')
+        createB = Button(self.roomF,text='Create Room',command=lambda:self.server.client_create_room(),font=('arial',12))
         # Show Widgets
-        usernameL.pack(pady=(10,5))
+        usernameL.pack(pady=5)
         roomsL.pack(padx=(0,220),side=TOP)
-        self.ROOMS_LIST.pack(expand=True,fill='both',padx=25,pady=(2,10))
-        createB.pack(pady=(0,10),ipadx=5)
+        self.ROOMS_LIST.pack(expand=True,fill='both',padx=25,pady=(2,5))
+        createB.pack(pady=(0,2),ipadx=5)
         
     
     def chats_frame (self):
         self.roomF.destroy()
         self.chatF.pack()
-
         self.master.geometry('')
         self.master.resizable(0,0)
         #widget
-        usernameL = Label(self.chatF, text=f'{self.server.UserName} ',font=('sens',15),bg='white')
-        messageE = Entry(self.chatF,textvariable=self.MESSAGE, width=50,font=('sens-serif',15))
+        usernameL = Label(self.chatF, text=f'{self.server.UserName} ',font=('century gothic',15),bg='white')
+        messageE = Entry(self.chatF,textvariable=self.MESSAGE, width=50,font=('century',15))
         messageE.bind('<Return>',self.send_btn_event)
-        sendB = Button(self.chatF,text='Send', command=self.send_btn_event,bg='#32a850')
-        self.MESSAGEBOX = Text(self.chatF,bg='#b5ffff',font=('sens',12)) 
+        sendB = Button(self.chatF,text='Send', command=self.send_btn_event,font=('corbel',12),bg='#32a850')
+        self.MESSAGEBOX = Text(self.chatF,bg='#d3d3d3',font=('century',12)) 
         # Show Widgets
         self.MESSAGEBOX.pack(side= TOP,fill='both', expand=True)
         usernameL.pack(side=LEFT,fill='both')

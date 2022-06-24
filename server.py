@@ -30,7 +30,7 @@ class Server:
                 self.analyze_data(data, CLIENT)
             except ConnectionResetError:
                 # TODO age class zadi yadet bashe az list pak koni
-                print('user disconnected')
+                print(f'User {ADDR[0]} disconnected!')
                 clients.remove((CLIENT,ADDR))
                 break
 

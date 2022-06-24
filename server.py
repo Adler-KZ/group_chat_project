@@ -1,11 +1,19 @@
-from __future__ import barry_as_FLUFL
-import threading, socket, random
+from audioop import add
+import threading, socket, random,pickle
 
-# Global vaiables
+# ------------------------------Global vaiables-------------------------------
 rooms = 0
-clients = []
 usernames = []
-usernames_roomID = {}
+clients_roomID={}
+
+# ------------------------------Classes-------------------------------
+class Data:
+    def __init__(self,method='',username='',color='',roomID='',message=''):
+        self.method = method
+        self.username=username
+        self.color=color
+        self.roomID = roomID
+        self.message = message
 
 class Server:
     def __init__(self,ip='127.0.0.1', port=4000):
@@ -13,12 +21,13 @@ class Server:
         self.server_ip = ip
         self.server_port = port
         self.server_soc.bind((ip, port))
+
     def run(self):
         self.server_soc.listen(10)
         print('server is run')
         for i in range(10):
             client, addr = self.server_soc.accept()
-            clients.append((client, addr))
+            clients_roomID[(client,addr)]=''
             print(f'The new user ({addr[0]}) joined the server')
             threading.Thread(target=self.receive, args=(client, addr)).start()
         self.server_soc.close()
@@ -27,65 +36,42 @@ class Server:
         while True:
             try:
                 data = CLIENT.recv(1024)
-                self.analyze_data(data, CLIENT)
-            except ConnectionResetError:
+                self.analyze_data(data, CLIENT,ADDR)
+            except:
                 # TODO age class zadi yadet bashe az list pak koni
                 print(f'User {ADDR[0]} disconnected!')
-                clients.remove((CLIENT,ADDR))
+                clients_roomID.pop((CLIENT,ADDR))
                 break
 
-
-    def analyze_data(self,DATA, CLIENT):
-        data = str(DATA, 'utf-8')
-        data_items = data.split(' ')
-        method = data_items[0]
+    def analyze_data(self,DATA, CLIENT,ADDR):
+        data = pickle.loads(DATA)
         global rooms
+        match data.method:
+            case 'connect':
+                # Unique Username
+                username = data.username
+                name = username
+                while True:
+                    if name not in usernames:
+                        break
+                    name = f'{username}_{random.randint(0, 99)}'
+                usernames.append(name)
+                data = Data(username=name,roomID=rooms)
+                CLIENT.sendall(pickle.dumps(data))
+            case 'message':
+                for c in clients_roomID.keys():
+                    if clients_roomID[c]==data.roomID:
+                        c[0].sendall(DATA)
+                # TODO momkene try except niaz dashte bashe
+            case 'create':
+                rooms += 1
+                clients_roomID[(CLIENT,ADDR)]=str(rooms)
+                data = Data(method='create',roomID=str(rooms))
+                CLIENT.sendall(pickle.dumps(data))
+            case 'exist':
+                clients_roomID[(CLIENT,ADDR)] = data.roomID
 
-        if method == 'connect':
-            # Unique Username
-            username = data_items[1]
-            name = username
-            while True:
-                if name not in usernames:
-                    break
-                name = f'{username}_{random.randint(0, 99)}'
-            usernames.append(name)
-
-            data = f'{name} {rooms}'
-            CLIENT.sendall(data.encode('utf-8'))
-
-        elif method == 'message':
-            for c in clients:
-                c[0].sendall(DATA)
-            # for c in clients:
-            #     try:
-            #         c[0].sendall(DATA)
-            #     except:
-            #         print(f'User disconnected')
-            #         clients.remove(c)
-        
-        elif method == 'create':
-            rooms += 1
-            username = data_items[1]
-            usernames_roomID[username]=rooms
-
-            data = f'create {rooms}'
-            CLIENT.sendall(data.encode('utf-8'))
-
-server = Server()
-server.run()
-# server_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# server_ip = '127.0.0.1'
-# server_port = 4000
-# server_soc.bind((server_ip, server_port))
-
-# server_soc.listen(10)
-# print('server is run')
-
-# for i in range(10):
-#     client, addr = server_soc.accept()
-#     clients.append((client, addr))
-#     print(f'The new user ({addr[0]}) joined the server')
-#     threading.Thread(target=receive, args=(client, addr)).start()
-
-# server_soc.close()
+# ------------------------------Main-------------------------------
+if __name__ == '__main__':
+    server = Server()
+    server.run()

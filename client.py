@@ -1,12 +1,8 @@
 
-from cmath import exp
-import socket
-import threading
-import re
-import random
+import socket,threading,re,random,pickle
 from tkinter import *
 from tkinter import messagebox
-
+from server import Data
 
 # ------------------------------Functions-------------------------------
 
@@ -45,59 +41,48 @@ class Server:
         try:
             self.soc.connect((IP, PORT))
             # Send username and get response from server
-            data = f'connect {NAME}'.encode('utf-8')
-            self.soc.sendall(data)
-            response = str(self.soc.recv(1024), 'utf-8').split(' ')
-            self.UserName = response[0]
-            self.window.insert_listbox(int(response[1]))
+            data = Data('connect',NAME)
+            self.soc.sendall(pickle.dumps(data))
+            response = pickle.loads(self.soc.recv(1024))
+            self.UserName = response.username
+            self.window.insert_listbox(int(response.roomID))
             self.window.rooms_frame()
             threading.Thread(target=self.client_recv).start()
-        except:
+        except socket.error:
             messagebox.showwarning('404','Server Not Found!')
 
-
-    def client_send_message(self, msg):
-        data = f'message {msg} {self.UserName} {self.Color} {self.RoomID}'
+    def client_send(self,method, msg=''):
+        match method:
+            case 'message':
+                data = Data(method,self.UserName,self.Color,self.RoomID,msg)
+            case 'create':
+                data = Data('create')
+            case 'exist':
+                data = Data(method,roomID=self.RoomID)
         try:
-            self.soc.sendall(data.encode('utf-8'))
-        except socket.error:
-            if messagebox.showerror('Sorry','Server is down!'):
-                quit()
-    
-    def client_create_room(self):
-        data = f'create {self.UserName}'
-        try:
-            self.soc.sendall(data.encode('utf-8'))
-            self.window.chats_frame()
+            self.soc.sendall(pickle.dumps(data))
+            if method == 'create' : self.window.chats_frame() 
         except socket.error:
             if messagebox.showerror('Sorry','Server is down!'):
                 quit()
 
     def client_recv(self):
         while True:
-            data = str(self.soc.recv(1024), 'utf-8').split(' ')
-            server_method = data[0]
-            if server_method == 'create':
-                self.RoomID = data[1]
-            elif server_method == 'message':
-                server_message = data[1]
-                server_username = data[2]
-                server_color = data[3]
-                server_roomID = data[4]
-                if self.RoomID != server_roomID :
-                    continue
+            data = pickle.loads(self.soc.recv(1024))
+            match data.method :
+                case 'create':
+                    self.RoomID = data.roomID
+                case 'message':
+                    # Custom tag color for print with diffrent color
+                    self.window.MESSAGEBOX.tag_config(f'{data.username}', foreground=data.color)
+                    # Insert message in messagebox 
+                    self.window.MESSAGEBOX.configure(state='normal')
+                    if data.username == self.UserName:
+                        self.window.MESSAGEBOX.insert(END, f'Me: {data.message}\n')
+                    else:
+                        self.window.MESSAGEBOX.insert(INSERT, f'{data.username} :  {data.message}\n', f'{data.username}')
+                    self.window.MESSAGEBOX.configure(state='disabled')
 
-                # Custom tag color for print with diffrent color
-                self.window.MESSAGEBOX.tag_config(f'{server_username}', foreground=server_color)
-
-                # Insert message in messagebox 
-                self.window.MESSAGEBOX.configure(state='normal')
-                if server_username == self.UserName:
-                    self.window.MESSAGEBOX.insert(END, f'Me: {server_message}\n')
-                else:
-                    self.window.MESSAGEBOX.insert(INSERT, f'{server_username}: {server_message}\n', f'{server_username}')
-                self.window.MESSAGEBOX.configure(state='disabled')
-            
 # <-------Window Class------->
 class Window:
     def __init__(self,server:Server,master:Tk, title:str,geometery:str):
@@ -165,16 +150,15 @@ class Window:
         self.roomF.pack(fill='both',expand=True)
         self.roomF.config(bg='#cf91ff')
         # Widgets
-        usernameL = Label(self.roomF, text=f'Wellcome {self.server.UserName}',font=('gabriola',35),bg='#cf91ff')
+        usernameL = Label(self.roomF, text=f'welcome {self.server.UserName}',font=('gabriola',35),bg='#cf91ff')
         roomsL = Label(self.roomF, text='Avabaile Rooms:',font=('arial',12),bg='#cf91ff')
-        createB = Button(self.roomF,text='Create Room',command=lambda:self.server.client_create_room(),font=('arial',12))
+        createB = Button(self.roomF,text='Create Room',command=lambda:self.server.client_send('create'),font=('arial',12))
         # Show Widgets
         usernameL.pack(pady=5)
         roomsL.pack(padx=(0,220),side=TOP)
         self.ROOMS_LIST.pack(expand=True,fill='both',padx=25,pady=(2,5))
         createB.pack(pady=(0,2),ipadx=5)
         
-    
     def chats_frame (self):
         self.roomF.destroy()
         self.chatF.pack()
@@ -199,14 +183,17 @@ class Window:
     # Events
     def double_ckick_event(self,event):
         selected_room = self.ROOMS_LIST.curselection()
-        self.server.RoomID = str(selected_room[0]+1)       
+        self.server.RoomID = str(selected_room[0]+1)
+        self.server.client_send('exist')       
         self.chats_frame()
+
     def login_btn_event(self,event=None):
         check_valid(self.server ,self.IP.get(), self.PORT.get(), self.USERNAME.get())
+
     def send_btn_event(self,event=None):
         message = self.MESSAGE.get()
         if bool(message):
-            self.server.client_send_message(self.MESSAGE.get())
+            self.server.client_send('message',self.MESSAGE.get())
             self.MESSAGE.set('')
 
     def EXIT(self):

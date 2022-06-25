@@ -1,19 +1,16 @@
-def print_map(n,m,bombT):
-    for i in range(n):
-        for j in range(m):
-            print(bombT[i][j],end = ' ')
-        print('')
+import imp
+import random
+from tkinter import *
 
-n, m = map(int, input().split())
-bombT = [[0]*m for i in range(n)]
+def random_color():
+    R = random.randint(30, 150)
+    G = random.randint(30, 150)
+    B = random.randint(30, 150)
+    hex_color = "#{:02x}{:02x}{:02x}".format(R, G, B)
+    return hex_color
 
-for i in range(int(input())):
-    bombY,bombX = map(int,input().split())
-    bombT[bombY-1][bombX-1] = '*'
-    for i in range(-1,2):
-        for j in range (-1,2):
-            x , y = bombX+i-1,bombY+j-1    
-            if 0<=y<n and 0<=x<m and bombT[y][x] != '*':
-                bombT[y][x]+=1
+root = Tk()
+root.config(bg='#d3d3d3')
+Label(text='Test color check',foreground=random_color(),bg='#d3d3d3').pack()
 
-print_map(n,m,bombT)
+root.mainloop()

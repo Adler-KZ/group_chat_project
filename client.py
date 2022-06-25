@@ -21,9 +21,9 @@ def check_valid(SERVER, ip, port, username):
 
 # <-------Unique Color------->
 def random_color():
-    R = random.randint(0, 255)
-    G = random.randint(0, 255)
-    B = random.randint(0, 255)
+    R = random.randint(30, 150)
+    G = random.randint(30, 150)
+    B = random.randint(30, 150)
     hex_color = "#{:02x}{:02x}{:02x}".format(R, G, B)
     return hex_color
 

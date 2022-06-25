@@ -70,30 +70,32 @@ class Server:
 
     def client_recv(self):
         while True:
-            data = pickle.loads(self.soc.recv(1024))
-            match data.method :
-                case 'create':
-                    self.RoomID = data.roomID
-                case 'message':
-                    # Custom tag color for print with diffrent color
-                    self.window.MESSAGEBOX.tag_config(f'{data.username}', foreground=data.color)
-                    # Insert message in messagebox 
-                    self.window.MESSAGEBOX.configure(state='normal')
-                    if data.username == self.UserName:
-                        self.window.MESSAGEBOX.insert(END, f'Me: {data.message}\n')
-                    else:
-                        self.window.MESSAGEBOX.insert(INSERT, f'{data.username} :  {data.message}\n', f'{data.username}')
-                    self.window.MESSAGEBOX.configure(state='disabled')
-                case 'refresh':
-                    self.window.onlineT.configure(state='normal')
-                    self.window.onlineT.delete("1.0","end")
-                    for username in data.list.keys():
-                        if data.list[username] == self.RoomID:
-                            self.window.onlineT.tag_configure("tag_name", justify='center')
-                            self.window.onlineT.insert(END,f'{username}\n')
-                            self.window.onlineT.tag_add("tag_name", "1.0", "end")
-                    self.window.onlineT.configure(state='disabled')
-
+            try:
+                data = pickle.loads(self.soc.recv(1024))
+                match data.method :
+                    case 'create':
+                        self.RoomID = data.roomID
+                    case 'message':
+                        # Custom tag color for print with diffrent color
+                        self.window.MESSAGEBOX.tag_config(f'{data.username}', foreground=data.color)
+                        # Insert message in messagebox 
+                        self.window.MESSAGEBOX.configure(state='normal')
+                        if data.username == self.UserName:
+                            self.window.MESSAGEBOX.insert(END, f'Me: {data.message}\n')
+                        else:
+                            self.window.MESSAGEBOX.insert(INSERT, f'{data.username} :  {data.message}\n', f'{data.username}')
+                        self.window.MESSAGEBOX.configure(state='disabled')
+                    case 'refresh':
+                        self.window.onlineT.configure(state='normal')
+                        self.window.onlineT.delete("1.0","end")
+                        for username in data.list.keys():
+                            if data.list[username] == self.RoomID:
+                                self.window.onlineT.tag_configure("tag_name", justify='center')
+                                self.window.onlineT.insert(END,f'{username}\n')
+                                self.window.onlineT.tag_add("tag_name", "1.0", "end")
+                        self.window.onlineT.configure(state='disabled')
+            except:
+                break
 # <-------Window Class------->
 class Window:
     def __init__(self,server:Server,master:Tk, title:str,geometery:str):
@@ -197,7 +199,7 @@ class Window:
     # Events
     def double_ckick_event(self,event):
         selected_room = self.ROOMS_LIST.curselection()
-        self.server.RoomID = str(selected_room[0]+1)
+        self.server.RoomID = selected_room[0]+1
         self.server.client_send('exist')       
         self.chat_frame()
 

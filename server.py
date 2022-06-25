@@ -23,9 +23,9 @@ class Server:
         self.server_soc.bind((ip, port))
 
     def run(self):
-        self.server_soc.listen(10)
-        print('server is run')
-        for i in range(10):
+        self.server_soc.listen(30)
+        print('server is running...')
+        for i in range(30):
             client, addr = self.server_soc.accept()
             clients_RoomUser[(client,addr)]=''
             print(f'The new user ({addr[0]}) joined the server')
@@ -38,8 +38,8 @@ class Server:
                 data = CLIENT.recv(1024)
                 self.analyze_data(data, CLIENT,ADDR)
             except:
-                print(f'User {ADDR[0]} disconnected!')
                 id, user = clients_RoomUser.pop((CLIENT,ADDR))
+                print(f'User ({user}) disconnected!')
                 usernames_roomID.pop(user)
                 self.users_room()
                 break
@@ -50,12 +50,11 @@ class Server:
         match data.method:
             case 'connect':
                 # Unique Username
-                username = data.username
-                name = username
+                name = data.username
                 while True:
                     if name not in usernames_roomID.keys():
                         break
-                    name = f'{username}_{random.randint(0, 99)}'
+                    name = f'{data.username}_{random.randint(0, 99)}'
                 usernames_roomID[name]=''
                 data = Data(username=name,roomID=rooms)
                 CLIENT.sendall(pickle.dumps(data))
@@ -65,10 +64,9 @@ class Server:
                         c[0].sendall(DATA)
             case 'create':
                 rooms += 1
-                clients_RoomUser[(CLIENT,ADDR)]=(str(rooms),data.username)
-                usernames_roomID[data.username]=str(rooms)
-                # roomID_users[str(rooms)]=data.username
-                data = Data(method='create',roomID=str(rooms))
+                clients_RoomUser[(CLIENT,ADDR)]=(rooms,data.username)
+                usernames_roomID[data.username]=rooms
+                data = Data(method='create',roomID=rooms)
                 CLIENT.sendall(pickle.dumps(data))
                 self.users_room()
             case 'exist':

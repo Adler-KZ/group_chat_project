@@ -96,6 +96,7 @@ class Server:
                         self.window.onlineT.configure(state='disabled')
             except:
                 break
+            
 # <-------Window Class------->
 class Window:
     def __init__(self,server:Server,master:Tk, title:str,geometery:str):
@@ -117,7 +118,7 @@ class Window:
         self.chatF = Frame(master)
         # Listbox room & dounble click event
         self.ROOMS_LIST = Listbox(self.roomF,font=('calibri',13))
-        self.ROOMS_LIST.bind('<Double-1>',self.double_ckick_event)
+        self.ROOMS_LIST.bind('<Double-1>', self.double_click_event)
         self.onlineT = Text(self.chatF,font=('century',13),width=15) 
         # Run main frame
         self.main_frame()
@@ -197,7 +198,7 @@ class Window:
             self.ROOMS_LIST.insert(i+1,f"Room {i+1}")
     
     # Events
-    def double_ckick_event(self,event):
+    def double_click_event(self, event):
         selected_room = self.ROOMS_LIST.curselection()
         self.server.RoomID = selected_room[0]+1
         self.server.client_send('exist')       

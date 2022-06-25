@@ -24,7 +24,7 @@ class Server:
 
     def run(self):
         self.server_soc.listen(30)
-        print('server is running...')
+        print('Server is running...')
         for i in range(30):
             client, addr = self.server_soc.accept()
             clients_RoomUser[(client,addr)]=''
@@ -38,10 +38,10 @@ class Server:
                 data = CLIENT.recv(1024)
                 self.analyze_data(data, CLIENT,ADDR)
             except:
-                id, user = clients_RoomUser.pop((CLIENT,ADDR))
-                print(f'User ({user}) disconnected!')
+                roomID, user = clients_RoomUser.pop((CLIENT, ADDR))
+                print(f'User ({user}) in Room ({roomID}) disconnected!')
                 usernames_roomID.pop(user)
-                self.users_room()
+                self.users_in_room()
                 break
 
     def analyze_data(self,DATA, CLIENT,ADDR):
@@ -55,7 +55,7 @@ class Server:
                     if name not in usernames_roomID.keys():
                         break
                     name = f'{data.username}_{random.randint(0, 99)}'
-                usernames_roomID[name]=''
+                clients_RoomUser[(CLIENT,ADDR)]=('Unknown',name)
                 data = Data(username=name,roomID=rooms)
                 CLIENT.sendall(pickle.dumps(data))
             case 'message':
@@ -68,17 +68,17 @@ class Server:
                 usernames_roomID[data.username]=rooms
                 data = Data(method='create',roomID=rooms)
                 CLIENT.sendall(pickle.dumps(data))
-                self.users_room()
+                self.users_in_room()
             case 'exist':
                 clients_RoomUser[(CLIENT,ADDR)] = (data.roomID,data.username)
                 usernames_roomID[data.username]=data.roomID
-                self.users_room()
-    
-    def users_room(self):
-        data = Data(method='refresh',list=usernames_roomID)
+                self.users_in_room()
+
+    def users_in_room(self):
+        data = Data(method='refresh',list = usernames_roomID)
         for c in clients_RoomUser.keys():
             c[0].sendall(pickle.dumps(data))
-            
+
 # ------------------------------Main-------------------------------
 if __name__ == '__main__':
     server = Server()

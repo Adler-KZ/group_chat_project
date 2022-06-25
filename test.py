@@ -1,17 +1,19 @@
-from cmath import exp
-from tkinter import *
+def print_map(n,m,bombT):
+    for i in range(n):
+        for j in range(m):
+            print(bombT[i][j],end = ' ')
+        print('')
 
-root = Tk()
-root.geometry('400x400')
+n, m = map(int, input().split())
+bombT = [[0]*m for i in range(n)]
 
-usernameL = Label(root, text=f'Your username: frame',font=('gabriola',35))
-roomsL = Label(root, text='Avabaile Rooms:',font=('arial',12))
-createB = Button(root,text='Create New Room',font=('arial',12))
-ROOMS_LIST = Listbox(root,font=('calibri',14))
-ROOMS_LIST.insert(0,'sfs')
+for i in range(int(input())):
+    bombY,bombX = map(int,input().split())
+    bombT[bombY-1][bombX-1] = '*'
+    for i in range(-1,2):
+        for j in range (-1,2):
+            x , y = bombX+i-1,bombY+j-1    
+            if 0<=y<n and 0<=x<m and bombT[y][x] != '*':
+                bombT[y][x]+=1
 
-usernameL.pack()
-roomsL.pack(padx=(0,220),side=TOP)
-ROOMS_LIST.pack(expand=True,fill='both',padx=25,pady=(2,5))
-createB.pack(ipadx=5,pady=(0,2))
-root.mainloop()
+print_map(n,m,bombT)

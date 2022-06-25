@@ -1,19 +1,19 @@
-from audioop import add
 import threading, socket, random,pickle
 
 # ------------------------------Global vaiables-------------------------------
 rooms = 0
-usernames = []
-clients_roomID={}
+usernames_roomID={}
+clients_RoomUser={}
 
 # ------------------------------Classes-------------------------------
 class Data:
-    def __init__(self,method='',username='',color='',roomID='',message=''):
+    def __init__(self,method='',username='',color='',roomID='',message='',list=''):
         self.method = method
         self.username=username
         self.color=color
         self.roomID = roomID
         self.message = message
+        self.list = list
 
 class Server:
     def __init__(self,ip='127.0.0.1', port=4000):
@@ -27,7 +27,7 @@ class Server:
         print('server is run')
         for i in range(10):
             client, addr = self.server_soc.accept()
-            clients_roomID[(client,addr)]=''
+            clients_RoomUser[(client,addr)]=''
             print(f'The new user ({addr[0]}) joined the server')
             threading.Thread(target=self.receive, args=(client, addr)).start()
         self.server_soc.close()
@@ -38,9 +38,10 @@ class Server:
                 data = CLIENT.recv(1024)
                 self.analyze_data(data, CLIENT,ADDR)
             except:
-                # TODO age class zadi yadet bashe az list pak koni
                 print(f'User {ADDR[0]} disconnected!')
-                clients_roomID.pop((CLIENT,ADDR))
+                id, user = clients_RoomUser.pop((CLIENT,ADDR))
+                usernames_roomID.pop(user)
+                self.users_room()
                 break
 
     def analyze_data(self,DATA, CLIENT,ADDR):
@@ -52,25 +53,34 @@ class Server:
                 username = data.username
                 name = username
                 while True:
-                    if name not in usernames:
+                    if name not in usernames_roomID.keys():
                         break
                     name = f'{username}_{random.randint(0, 99)}'
-                usernames.append(name)
+                usernames_roomID[name]=''
                 data = Data(username=name,roomID=rooms)
                 CLIENT.sendall(pickle.dumps(data))
             case 'message':
-                for c in clients_roomID.keys():
-                    if clients_roomID[c]==data.roomID:
+                for c in clients_RoomUser.keys():
+                    if clients_RoomUser[c][0]==data.roomID:
                         c[0].sendall(DATA)
-                # TODO momkene try except niaz dashte bashe
             case 'create':
                 rooms += 1
-                clients_roomID[(CLIENT,ADDR)]=str(rooms)
+                clients_RoomUser[(CLIENT,ADDR)]=(str(rooms),data.username)
+                usernames_roomID[data.username]=str(rooms)
+                # roomID_users[str(rooms)]=data.username
                 data = Data(method='create',roomID=str(rooms))
                 CLIENT.sendall(pickle.dumps(data))
+                self.users_room()
             case 'exist':
-                clients_roomID[(CLIENT,ADDR)] = data.roomID
-
+                clients_RoomUser[(CLIENT,ADDR)] = (data.roomID,data.username)
+                usernames_roomID[data.username]=data.roomID
+                self.users_room()
+    
+    def users_room(self):
+        data = Data(method='refresh',list=usernames_roomID)
+        for c in clients_RoomUser.keys():
+            c[0].sendall(pickle.dumps(data))
+            
 # ------------------------------Main-------------------------------
 if __name__ == '__main__':
     server = Server()

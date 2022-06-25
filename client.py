@@ -11,11 +11,13 @@ def check_valid(SERVER, ip, port, username):
     ipP = re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip)
     usernameP = re.match(r"[A-Za-z1-9]", username)
 
-    if ipP and usernameP and port.isdigit():
-        return SERVER.connect_to_server(ip, int(port), username)
+    if ipP and port.isdigit():
+        if usernameP:
+            return SERVER.connect_to_server(ip, int(port), username)
+        else:
+            messagebox.showerror('Error','Your username is not Valid!\nPlease change it')
     else:
-        print('error')
-        messagebox.showerror('Not Valid Format!','This data is not standard!')
+        messagebox.showerror('Error','This IP & port are incorrect\nPlease fix it')
 
 # <-------Unique Color------->
 def random_color():
@@ -46,7 +48,7 @@ class Server:
             response = pickle.loads(self.soc.recv(1024))
             self.UserName = response.username
             self.window.insert_listbox(int(response.roomID))
-            self.window.rooms_frame()
+            self.window.room_frame()
             threading.Thread(target=self.client_recv).start()
         except socket.error:
             messagebox.showwarning('404','Server Not Found!')
@@ -56,12 +58,12 @@ class Server:
             case 'message':
                 data = Data(method,self.UserName,self.Color,self.RoomID,msg)
             case 'create':
-                data = Data('create')
+                data = Data('create',username=self.UserName)
             case 'exist':
-                data = Data(method,roomID=self.RoomID)
+                data = Data(method,roomID=self.RoomID,username=self.UserName)
         try:
             self.soc.sendall(pickle.dumps(data))
-            if method == 'create' : self.window.chats_frame() 
+            if method == 'create' : self.window.chat_frame() 
         except socket.error:
             if messagebox.showerror('Sorry','Server is down!'):
                 quit()
@@ -82,6 +84,15 @@ class Server:
                     else:
                         self.window.MESSAGEBOX.insert(INSERT, f'{data.username} :  {data.message}\n', f'{data.username}')
                     self.window.MESSAGEBOX.configure(state='disabled')
+                case 'refresh':
+                    self.window.onlineT.configure(state='normal')
+                    self.window.onlineT.delete("1.0","end")
+                    for username in data.list.keys():
+                        if data.list[username] == self.RoomID:
+                            self.window.onlineT.tag_configure("tag_name", justify='center')
+                            self.window.onlineT.insert(END,f'{username}\n')
+                            self.window.onlineT.tag_add("tag_name", "1.0", "end")
+                    self.window.onlineT.configure(state='disabled')
 
 # <-------Window Class------->
 class Window:
@@ -105,6 +116,7 @@ class Window:
         # Listbox room & dounble click event
         self.ROOMS_LIST = Listbox(self.roomF,font=('calibri',13))
         self.ROOMS_LIST.bind('<Double-1>',self.double_ckick_event)
+        self.onlineT = Text(self.chatF,font=('century',13),width=15) 
         # Run main frame
         self.main_frame()
 
@@ -112,8 +124,8 @@ class Window:
         self.mainF.pack(fill='both',expand=True)
         self.mainF.config(bg='#cf91ff')
         # widget
-        welcomeL = Label(self.mainF,text='Welcome to the',bg ='#cf91ff',font=('franklin fothic',30))
         nameL = Label(self.mainF,text='ROOM 323',bg ='#cf91ff',font=('impact',40))
+        welcomeL = Label(self.mainF,text='Welcome to the',bg ='#cf91ff',font=('franklin fothic',30))
         loginB = Button(self.mainF,text='Login',command=self.login_window,font=('impact',18,'italic'),bg='#237ca6')
         # Show Widgets
         welcomeL.pack(pady=(50,0))
@@ -127,12 +139,12 @@ class Window:
         self.loginF.geometry('300x180')
         self.loginF.resizable(0,0)
         # Widgets
-        ipL = Label(self.loginF, text='Enter your IP :',font=('arial',10))
-        portL = Label(self.loginF, text='Enter your Port :',font=('arial',10))
-        usernameL = Label(self.loginF, text='Enter your Username :',font=('arial',10))
         ipE=Entry(self.loginF, textvariable=self.IP,font=('corbel',10))
+        ipL = Label(self.loginF, text='Enter your IP :',font=('arial',10))
         portE=Entry(self.loginF, textvariable=self.PORT,font=('corbel',10))
+        portL = Label(self.loginF, text='Enter your Port :',font=('arial',10))
         usernameE=Entry(self.loginF, textvariable=self.USERNAME,font=('corbel',10))
+        usernameL = Label(self.loginF, text='Enter your Username :',font=('arial',10))
         loginB = Button(self.loginF, text='Login',command=self.login_btn_event,font=('corbel',10))
         loginB.bind('<Return>',self.login_btn_event)
         # Show Widgets
@@ -144,22 +156,22 @@ class Window:
         usernameE.grid(row=2,column=3,pady=10)
         loginB.grid(row=3,column=2,columnspan=2,pady=10)
 
-    def rooms_frame (self):
+    def room_frame (self):
         self.loginF.destroy()
         self.mainF.destroy()
         self.roomF.pack(fill='both',expand=True)
         self.roomF.config(bg='#cf91ff')
         # Widgets
+        createB = Button(self.roomF,text='Create Room',command=lambda:self.server.client_send('create'),font=('arial',12))
         usernameL = Label(self.roomF, text=f'welcome {self.server.UserName}',font=('gabriola',35),bg='#cf91ff')
         roomsL = Label(self.roomF, text='Avabaile Rooms:',font=('arial',12),bg='#cf91ff')
-        createB = Button(self.roomF,text='Create Room',command=lambda:self.server.client_send('create'),font=('arial',12))
         # Show Widgets
         usernameL.pack(pady=5)
         roomsL.pack(padx=(0,220),side=TOP)
         self.ROOMS_LIST.pack(expand=True,fill='both',padx=25,pady=(2,5))
         createB.pack(pady=(0,2),ipadx=5)
         
-    def chats_frame (self):
+    def chat_frame (self):
         self.roomF.destroy()
         self.chatF.pack()
         self.master.geometry('')
@@ -169,8 +181,10 @@ class Window:
         messageE = Entry(self.chatF,textvariable=self.MESSAGE, width=50,font=('century',15))
         messageE.bind('<Return>',self.send_btn_event)
         sendB = Button(self.chatF,text='Send', command=self.send_btn_event,font=('corbel',12),bg='#32a850')
-        self.MESSAGEBOX = Text(self.chatF,bg='#d3d3d3',font=('century',12)) 
+        self.MESSAGEBOX = Text(self.chatF,bg='#d3d3d3',font=('century',12),width=25) 
+        self.MESSAGEBOX.configure(state='disabled')
         # Show Widgets
+        self.onlineT.pack(side=RIGHT,expand=True,fill='both')
         self.MESSAGEBOX.pack(side= TOP,fill='both', expand=True)
         usernameL.pack(side=LEFT,fill='both')
         messageE.pack(side=LEFT,expand=True,fill='both')
@@ -185,7 +199,7 @@ class Window:
         selected_room = self.ROOMS_LIST.curselection()
         self.server.RoomID = str(selected_room[0]+1)
         self.server.client_send('exist')       
-        self.chats_frame()
+        self.chat_frame()
 
     def login_btn_event(self,event=None):
         check_valid(self.server ,self.IP.get(), self.PORT.get(), self.USERNAME.get())

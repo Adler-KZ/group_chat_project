@@ -48,6 +48,7 @@ class Server:
         data = pickle.loads(DATA)
         global rooms
         match data.method:
+            #* Client wants to connect the server
             case 'connect':
                 # Unique Username
                 name = data.username
@@ -55,13 +56,18 @@ class Server:
                     if name not in usernames_roomID.keys():
                         break
                     name = f'{data.username}_{random.randint(0, 99)}'
+                # Save Username
+                usernames_roomID[name]='Unknown'
                 clients_RoomUser[(CLIENT,ADDR)]=('Unknown',name)
+                # Send new username to client
                 data = Data(username=name,roomID=rooms)
                 CLIENT.sendall(pickle.dumps(data))
+            #* Server receive message from a client then sends to the all clients that are in a same room
             case 'message':
                 for c in clients_RoomUser.keys():
                     if clients_RoomUser[c][0]==data.roomID:
                         c[0].sendall(DATA)
+            #* Client wants to the create a new room
             case 'create':
                 rooms += 1
                 clients_RoomUser[(CLIENT,ADDR)]=(rooms,data.username)
@@ -69,11 +75,12 @@ class Server:
                 data = Data(method='create',roomID=rooms)
                 CLIENT.sendall(pickle.dumps(data))
                 self.users_in_room()
+            #* Client wants to join an exist room
             case 'exist':
                 clients_RoomUser[(CLIENT,ADDR)] = (data.roomID,data.username)
                 usernames_roomID[data.username]=data.roomID
                 self.users_in_room()
-
+    
     def users_in_room(self):
         data = Data(method='refresh',list = usernames_roomID)
         for c in clients_RoomUser.keys():

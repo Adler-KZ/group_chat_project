@@ -9,7 +9,7 @@ from server import Data
 # <-------Check True Validation------->
 def check_valid(SERVER, ip, port, username):
     ipP = re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip)
-    usernameP = re.match(r"[A-Za-z1-9]", username)
+    usernameP = re.match(r"[A-Za-z]+", username)
 
     if ipP and port.isdigit():
         if usernameP:
@@ -47,7 +47,7 @@ class Server:
             self.soc.sendall(pickle.dumps(data))
             response = pickle.loads(self.soc.recv(1024))
             self.UserName = response.username
-            self.window.insert_listbox(int(response.roomID))
+            self.window.insert_listbox(response.roomID)
             self.window.room_frame()
             threading.Thread(target=self.client_recv).start()
         except socket.error:
@@ -85,8 +85,11 @@ class Server:
                         else:
                             self.window.MESSAGEBOX.insert(INSERT, f'{data.username} :  {data.message}\n', f'{data.username}')
                         self.window.MESSAGEBOX.configure(state='disabled')
-                    case 'refresh':
-                        # Refresh the users in a same room
+                    case 'update':
+                        # Update Avabaile Rooms when user create a new room
+                        if data.roomID:
+                            self.window.insert_listbox(data.roomID)
+                        # Update the users in a same room
                         self.window.onlineT.configure(state='normal')
                         self.window.onlineT.delete("1.0","end")
                         for roomID,username in data.list:
@@ -195,9 +198,13 @@ class Window:
         sendB.pack(side=RIGHT,fill='both',ipadx=10)
     
     def insert_listbox(self,num:int):
-        for i in range(num):
-            self.ROOMS_LIST.insert(i+1,f"Room {i+1}")
-    
+        try:
+            self.ROOMS_LIST.delete(0,'end')
+            for i in range(num):
+                self.ROOMS_LIST.insert(i+1,f"Room {i+1}")
+        except:
+            pass
+
     # Events
     def double_click_event(self, event):
         selected_room = self.ROOMS_LIST.curselection()

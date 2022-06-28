@@ -41,7 +41,7 @@ class Server:
                 roomID, user = clients_RoomUser.pop((CLIENT, ADDR))
                 print(f'User ({user}) in Room ({roomID}) disconnected!')
                 usernames.remove(user)
-                self.users_in_room()
+                self.update()
                 break
 
     def analyze_data(self,DATA, CLIENT,ADDR):
@@ -73,14 +73,14 @@ class Server:
                 clients_RoomUser[(CLIENT,ADDR)]=(rooms,data.username)
                 data = Data(method='create',roomID=rooms)
                 CLIENT.sendall(pickle.dumps(data))
-                self.users_in_room()
+                self.update(rooms)
             #* Client wants to join an exist room
             case 'exist':
                 clients_RoomUser[(CLIENT,ADDR)] = (data.roomID,data.username)
-                self.users_in_room()
+                self.update()
     
-    def users_in_room(self):
-        data = Data(method='refresh',list = list(clients_RoomUser.values()))
+    def update(self,roomID=None):
+        data = Data(method='update',roomID=roomID,list = list(clients_RoomUser.values()))
         for c in clients_RoomUser.keys():
             c[0].sendall(pickle.dumps(data))
 

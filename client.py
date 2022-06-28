@@ -86,10 +86,11 @@ class Server:
                             self.window.MESSAGEBOX.insert(INSERT, f'{data.username} :  {data.message}\n', f'{data.username}')
                         self.window.MESSAGEBOX.configure(state='disabled')
                     case 'refresh':
+                        # Refresh the users in a same room
                         self.window.onlineT.configure(state='normal')
                         self.window.onlineT.delete("1.0","end")
-                        for username in data.list.keys():
-                            if data.list[username] == self.RoomID:
+                        for roomID,username in data.list:
+                            if roomID == self.RoomID:
                                 self.window.onlineT.tag_configure("tag_name", justify='center')
                                 self.window.onlineT.insert(END,f'{username}\n')
                                 self.window.onlineT.tag_add("tag_name", "1.0", "end")

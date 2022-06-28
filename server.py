@@ -2,7 +2,7 @@ import threading, socket, random,pickle
 
 # ------------------------------Global vaiables-------------------------------
 rooms = 0
-usernames_roomID={}
+usernames=[]
 clients_RoomUser={}
 
 # ------------------------------Classes-------------------------------
@@ -40,7 +40,7 @@ class Server:
             except:
                 roomID, user = clients_RoomUser.pop((CLIENT, ADDR))
                 print(f'User ({user}) in Room ({roomID}) disconnected!')
-                usernames_roomID.pop(user)
+                usernames.remove(user)
                 self.users_in_room()
                 break
 
@@ -53,11 +53,11 @@ class Server:
                 # Unique Username
                 name = data.username
                 while True:
-                    if name not in usernames_roomID.keys():
+                    if name not in usernames:
                         break
                     name = f'{data.username}_{random.randint(0, 99)}'
                 # Save Username
-                usernames_roomID[name]='Unknown'
+                usernames.append(name)
                 clients_RoomUser[(CLIENT,ADDR)]=('Unknown',name)
                 # Send new username to client
                 data = Data(username=name,roomID=rooms)
@@ -71,18 +71,16 @@ class Server:
             case 'create':
                 rooms += 1
                 clients_RoomUser[(CLIENT,ADDR)]=(rooms,data.username)
-                usernames_roomID[data.username]=rooms
                 data = Data(method='create',roomID=rooms)
                 CLIENT.sendall(pickle.dumps(data))
                 self.users_in_room()
             #* Client wants to join an exist room
             case 'exist':
                 clients_RoomUser[(CLIENT,ADDR)] = (data.roomID,data.username)
-                usernames_roomID[data.username]=data.roomID
                 self.users_in_room()
     
     def users_in_room(self):
-        data = Data(method='refresh',list = usernames_roomID)
+        data = Data(method='refresh',list = list(clients_RoomUser.values()))
         for c in clients_RoomUser.keys():
             c[0].sendall(pickle.dumps(data))
 

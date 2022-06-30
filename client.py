@@ -2,7 +2,6 @@
 import socket,threading,re,random,pickle
 from tkinter import *
 from tkinter import messagebox
-import tkinter
 from server import Data
 
 # ------------------------------Functions-------------------------------
@@ -77,15 +76,18 @@ class Server:
                     case 'create':
                         self.RoomID = data.roomID
                     case 'message':
-                        # Custom tag color for print with diffrent color
-                        self.window.MESSAGEBOX.tag_config(f'{data.username}', foreground=data.color)
-                        # Insert message in messagebox 
-                        self.window.MESSAGEBOX.configure(state='normal')
-                        if data.username == self.UserName:
-                            self.window.MESSAGEBOX.insert(END, f'Me: {data.message}\n')
-                        else:
-                            self.window.MESSAGEBOX.insert(INSERT, f'{data.username} :  {data.message}\n', f'{data.username}')
-                        self.window.MESSAGEBOX.configure(state='disabled')
+                        try:
+                            # Custom tag color for print with diffrent color
+                            self.window.MESSAGEBOX.tag_config(f'{data.username}', foreground=data.color)
+                            # Insert message in messagebox 
+                            self.window.MESSAGEBOX.configure(state='normal')
+                            if data.username == self.UserName:
+                                self.window.MESSAGEBOX.insert(END, f'Me: {data.message}\n')
+                            else:
+                                self.window.MESSAGEBOX.insert(INSERT, f'{data.username} :  {data.message}\n', f'{data.username}')
+                            self.window.MESSAGEBOX.configure(state='disabled')
+                        except:
+                            pass
                     case 'update':
                         # Update Avabaile Rooms when user create a new room
                         if data.roomID:
@@ -181,15 +183,17 @@ class Window:
         
     def chat_window (self):
         self.master.withdraw()
+        # Chat Window attr
         self.chatW = Toplevel(self.master)
         self.chatW.protocol('WM_DELETE_WINDOW',self.chat_exit)
-        self.onlineT = Text(self.chatW,font=('century',13),width=15) 
-
+        self.chatW.resizable(0,0)
         # Widgets
         usernameL = Label(self.chatW, text=f'{self.server.UserName} ',font=('century gothic',15),bg='white')
         messageE = Entry(self.chatW,textvariable=self.MESSAGE, width=50,font=('century',15))
         messageE.bind('<Return>',self.send_btn_event)
         sendB = Button(self.chatW,text='Send', command=self.send_btn_event,font=('corbel',12),bg='#32a850')
+        # Globals widgets
+        self.onlineT = Text(self.chatW,font=('century',13),width=15) 
         self.MESSAGEBOX = Text(self.chatW,bg='#d3d3d3',font=('century',12),width=25) 
         self.MESSAGEBOX.configure(state='disabled')
         # Show Widgets
@@ -198,7 +202,7 @@ class Window:
         usernameL.pack(side=LEFT,fill='both')
         messageE.pack(side=LEFT,expand=True,fill='both')
         sendB.pack(side=RIGHT,fill='both',ipadx=10)
-    
+        
     def insert_listbox(self,num:int):
         try:
             self.ROOMS_LIST.delete(0,'end')
@@ -223,9 +227,12 @@ class Window:
             self.server.client_send('message',self.MESSAGE.get())
             self.MESSAGE.set('')
 
+    # Exit button defines
     def main_exit(self):
         self.server.soc.close()
         self.master.destroy()
+        quit()
+
     def chat_exit(self):
         if messagebox.askyesno('','Do you want to close the program?\nOr want to change room?'):
             self.server.soc.close()

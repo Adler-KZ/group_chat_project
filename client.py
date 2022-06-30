@@ -29,7 +29,6 @@ def random_color():
 
 
 # ------------------------------Classes-------------------------------
-
 # <-------Server Class------->
 class Server:
     def __init__(self, soc:socket.socket, window=None):
@@ -76,18 +75,15 @@ class Server:
                     case 'create':
                         self.RoomID = data.roomID
                     case 'message':
-                        try:
-                            # Custom tag color for print with diffrent color
-                            self.window.MESSAGEBOX.tag_config(f'{data.username}', foreground=data.color)
-                            # Insert message in messagebox 
-                            self.window.MESSAGEBOX.configure(state='normal')
-                            if data.username == self.UserName:
-                                self.window.MESSAGEBOX.insert(END, f'Me: {data.message}\n')
-                            else:
-                                self.window.MESSAGEBOX.insert(INSERT, f'{data.username} :  {data.message}\n', f'{data.username}')
-                            self.window.MESSAGEBOX.configure(state='disabled')
-                        except:
-                            pass
+                        # Custom tag color for print with diffrent color
+                        self.window.MESSAGEBOX.tag_config(f'{data.username}', foreground=data.color)
+                        # Insert message in messagebox 
+                        self.window.MESSAGEBOX.configure(state='normal')
+                        if data.username == self.UserName:
+                            self.window.MESSAGEBOX.insert(END, f'Me: {data.message}\n')
+                        else:
+                            self.window.MESSAGEBOX.insert(INSERT, f'{data.username} :  {data.message}\n', f'{data.username}')
+                        self.window.MESSAGEBOX.configure(state='disabled')
                     case 'update':
                         # Update Avabaile Rooms when user create a new room
                         if data.roomID:
@@ -103,9 +99,9 @@ class Server:
                         self.window.onlineT.configure(state='disabled')
             except ConnectionResetError:
                 break
-            except AttributeError:
+            except:
                 continue
-            
+
 # <-------Window Class------->
 class Window:
     def __init__(self,server:Server,master:Tk, title:str,geometery:str):

@@ -97,7 +97,7 @@ class Server:
                                 self.window.onlineT.insert(END,f'{username}\n')
                                 self.window.onlineT.tag_add("tag_name", "1.0", "end")
                         self.window.onlineT.configure(state='disabled')
-            except ConnectionResetError:
+            except (ConnectionResetError,ConnectionAbortedError,EOFError):
                 break
             except:
                 continue

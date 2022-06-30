@@ -2,6 +2,7 @@
 import socket,threading,re,random,pickle
 from tkinter import *
 from tkinter import messagebox
+import tkinter
 from server import Data
 
 # ------------------------------Functions-------------------------------
@@ -58,12 +59,12 @@ class Server:
             case 'message':
                 data = Data(method,self.UserName,self.Color,self.RoomID,msg)
             case 'create':
-                data = Data('create',username=self.UserName)
+                data = Data(method,username=self.UserName)
             case 'exist':
                 data = Data(method,roomID=self.RoomID,username=self.UserName)
         try:
             self.soc.sendall(pickle.dumps(data))
-            if method == 'create' : self.window.chat_frame() 
+            if method == 'create' : self.window.chat_window() 
         except socket.error:
             if messagebox.showerror('Sorry','Server is down!'):
                 quit()
@@ -98,8 +99,10 @@ class Server:
                                 self.window.onlineT.insert(END,f'{username}\n')
                                 self.window.onlineT.tag_add("tag_name", "1.0", "end")
                         self.window.onlineT.configure(state='disabled')
-            except:
+            except ConnectionResetError:
                 break
+            except AttributeError:
+                continue
             
 # <-------Window Class------->
 class Window:
@@ -109,7 +112,7 @@ class Window:
         self.master = master
         self.master.title(title)
         self.master.geometry(geometery)
-        self.master.protocol('WM_DELETE_WINDOW',self.EXIT)
+        self.master.protocol('WM_DELETE_WINDOW',self.main_exit)
         self.master.resizable(0,0)
         # Variables
         self.IP=StringVar(master)
@@ -119,11 +122,9 @@ class Window:
         # Frames
         self.mainF = Frame(master)
         self.roomF = Frame(master)
-        self.chatF = Frame(master)
         # Listbox room & dounble click event
         self.ROOMS_LIST = Listbox(self.roomF,font=('calibri',13))
         self.ROOMS_LIST.bind('<Double-1>', self.double_click_event)
-        self.onlineT = Text(self.chatF,font=('century',13),width=15) 
         # Run main frame
         self.main_frame()
 
@@ -178,17 +179,18 @@ class Window:
         self.ROOMS_LIST.pack(expand=True,fill='both',padx=25,pady=(2,5))
         createB.pack(pady=(0,2),ipadx=5)
         
-    def chat_frame (self):
-        self.roomF.destroy()
-        self.chatF.pack()
-        self.master.geometry('')
-        self.master.resizable(0,0)
-        #widget
-        usernameL = Label(self.chatF, text=f'{self.server.UserName} ',font=('century gothic',15),bg='white')
-        messageE = Entry(self.chatF,textvariable=self.MESSAGE, width=50,font=('century',15))
+    def chat_window (self):
+        self.master.withdraw()
+        self.chatW = Toplevel(self.master)
+        self.chatW.protocol('WM_DELETE_WINDOW',self.chat_exit)
+        self.onlineT = Text(self.chatW,font=('century',13),width=15) 
+
+        # Widgets
+        usernameL = Label(self.chatW, text=f'{self.server.UserName} ',font=('century gothic',15),bg='white')
+        messageE = Entry(self.chatW,textvariable=self.MESSAGE, width=50,font=('century',15))
         messageE.bind('<Return>',self.send_btn_event)
-        sendB = Button(self.chatF,text='Send', command=self.send_btn_event,font=('corbel',12),bg='#32a850')
-        self.MESSAGEBOX = Text(self.chatF,bg='#d3d3d3',font=('century',12),width=25) 
+        sendB = Button(self.chatW,text='Send', command=self.send_btn_event,font=('corbel',12),bg='#32a850')
+        self.MESSAGEBOX = Text(self.chatW,bg='#d3d3d3',font=('century',12),width=25) 
         self.MESSAGEBOX.configure(state='disabled')
         # Show Widgets
         self.onlineT.pack(side=RIGHT,expand=True,fill='both')
@@ -207,10 +209,10 @@ class Window:
 
     # Events
     def double_click_event(self, event):
+        self.chat_window()
         selected_room = self.ROOMS_LIST.curselection()
         self.server.RoomID = selected_room[0]+1
         self.server.client_send('exist')       
-        self.chat_frame()
 
     def login_btn_event(self,event=None):
         check_valid(self.server ,self.IP.get(), self.PORT.get(), self.USERNAME.get())
@@ -221,10 +223,18 @@ class Window:
             self.server.client_send('message',self.MESSAGE.get())
             self.MESSAGE.set('')
 
-    def EXIT(self):
+    def main_exit(self):
         self.server.soc.close()
         self.master.destroy()
-
+    def chat_exit(self):
+        if messagebox.askyesno('','Do you want to close the program?\nOr want to change room?'):
+            self.server.soc.close()
+            self.chatW.destroy()
+            self.master.destroy()
+            quit()
+        else:
+            self.chatW.destroy()
+            self.master.deiconify()
 
 # ------------------------------Main-------------------------------
 

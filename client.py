@@ -9,9 +9,10 @@ from server import Data
 # <-------Check True Validation------->
 def check_valid(SERVER, ip, port, username):
     ipP = re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip)
-    usernameP = re.match(r"[A-Za-z]+", username)
+    usernameP = re.match(r"^[A-Za-z]+$", username)
+    portP = re.match(r"^\d{1,5}$", port)
 
-    if ipP and port.isdigit():
+    if ipP and portP:
         if usernameP:
             return SERVER.connect_to_server(ip, int(port), username)
         else:
@@ -24,7 +25,7 @@ def random_color():
     R = random.randint(30, 150)
     G = random.randint(30, 150)
     B = random.randint(30, 150)
-    hex_color = "#{:02x}{:02x}{:02x}".format(R, G, B)
+    hex_color = f"#{R:02x}{G:02x}{B:02x}"
     return hex_color
 
 
@@ -230,7 +231,7 @@ class Window:
         quit()
 
     def chat_exit(self):
-        if messagebox.askyesno('','Do you want to close the program?\nOr want to change room?'):
+        if messagebox.askyesno('','Do you want to close the program?\nClick (No) if you want to change room'):
             self.server.soc.close()
             self.chatW.destroy()
             self.master.destroy()

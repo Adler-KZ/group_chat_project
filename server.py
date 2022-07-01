@@ -23,9 +23,9 @@ class Server:
         self.server_soc.bind((ip, port))
 
     def run(self):
-        self.server_soc.listen(30)
+        self.server_soc.listen(100)
         print('Server is running...')
-        for i in range(30):
+        for i in range(100):
             client, addr = self.server_soc.accept()
             clients_RoomUser[(client,addr)]=''
             print(f'The new user ({addr[0]}) joined the server')
